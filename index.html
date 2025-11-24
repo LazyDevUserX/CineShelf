@@ -1,372 +1,464 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cineshelf</title>
-    <!-- React & Tailwind Setup -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 400: '#38bdf8', 500: '#0ea5e9' },
-                        rating: { imdb: '#F5C518', rt: '#FA320A', meta: '#66CC33' }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-        .shimmer { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Cineshelf</title><script crossorigin src="https://www.google.com/search?q=https://unpkg.com/react%4018/umd/react.production.min.js"></script><script crossorigin src="https://www.google.com/search?q=https://unpkg.com/react-dom%4018/umd/react-dom.production.min.js"></script><script src="https://www.google.com/search?q=https://unpkg.com/%40babel/standalone/babel.min.js"></script><script src="https://www.google.com/search?q=https://cdn.tailwindcss.com"></script><script>tailwind.config = {theme: {extend: {fontFamily: { sans: ['Inter', 'sans-serif'] },colors: {bg: '#121212',surface: '#1e1e1e',primary: '#2D303E',accent: '#63E8C2',text: '#e0e0e0',muted: '#888',danger: '#E57373',rating: { imdb: '#F5C518', rt: '#FA320A', meta: '#66CC33' }},animation: {'fade-in': 'fadeIn 0.3s ease-out','slide-up': 'slideUp 0.4s ease-out'},keyframes: {fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }}}}}</script><link href="https://www.google.com/search?q=https://fonts.googleapis.com/css2%3Ffamily%3DInter:wght%40300%3B400%3B500%3B600%3B700%26display%3Dswap" rel="stylesheet"><style>body { background-color: #121212; color: #e0e0e0; font-family: 'Inter', sans-serif; }.glass { background: rgba(30, 41, 62, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); }.hide-scrollbar::-webkit-scrollbar { display: none; }.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }.poster-shadow { box-shadow: 0 8px 30px rgba(0,0,0,0.5); }.modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }</style></head><body><div id="root"></div><script type="text/babel">
+    // --- CONFIG ---
+    const CONFIG = {
+        // ⚠️ REPLACE THIS URL WITH YOUR NEW DEPLOYMENT URL
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbwVt3u9lQjADu0fEKfz2WwjXtxMLJDHNLrAfb5N-UA6J77ZIc3j4Owtci0QW6FWjy8g/exec', 
+        TMDB_KEY: 'ec3d25e0458b75e29560a3e00f3b0047', 
+        OMDB_KEY: '79067461'
+    };
 
-    <script type="text/babel">
-        // --- CONFIGURATION ---
-        const CONFIG = {
-            // ⚠️ PASTE YOUR GOOGLE WEB APP URL HERE
-            GAS_URL: 'https://script.google.com/macros/s/AKfycbwVt3u9lQjADu0fEKfz2WwjXtxMLJDHNLrAfb5N-UA6J77ZIc3j4Owtci0QW6FWjy8g/exec', 
-            
-            // Your API Keys
-            TMDB_KEY: 'ec3d25e0458b75e29560a3e00f3b0047', 
-            OMDB_KEY: '79067461'
-        };
+    const { useState, useEffect, useCallback, useMemo } = React;
 
-        const { useState, useEffect, useCallback, useMemo } = React;
+    // --- ICONS ---
+    const Icons = {
+        Search: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+        Trending: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>,
+        Library: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
+        X: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+        Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+        Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+        Edit: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
+        Star: () => <svg className="w-4 h-4 text-accent fill-current" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+    };
 
-        // --- ICONS ---
-        const Icons = {
-            Search: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-            X: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
-            Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-            Film: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>,
-            Star: () => <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>,
-            Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
-        };
+    // --- COMPONENTS ---
 
-        const Poster = ({ path, alt, className }) => {
-            const [loaded, setLoaded] = useState(false);
-            const src = path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
-            return (
-                <div className={`relative overflow-hidden bg-brand-800 ${className}`}>
-                    {!loaded && <div className="absolute inset-0 shimmer"></div>}
-                    <img src={src} alt={alt} className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`} onLoad={() => setLoaded(true)} />
+    const Loading = () => (
+        <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-surface border-t-accent"></div>
+        </div>
+    );
+
+    const Poster = ({ path, alt }) => {
+        const src = path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
+        return (
+            <div className="aspect-[2/3] bg-surface rounded-xl overflow-hidden shadow-lg relative group">
+                <img src={src} alt={alt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+            </div>
+        );
+    };
+
+    const MovieCard = ({ movie, onClick }) => (
+        <div onClick={() => onClick(movie)} className="cursor-pointer group animate-slide-up">
+            <Poster path={movie.posterPath || movie.poster_path} alt={movie.title || movie.name} />
+            <div className="mt-3 px-1">
+                <h3 className="font-semibold text-white truncate text-base">{movie.title || movie.name}</h3>
+                <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs text-muted font-medium uppercase tracking-wider">
+                        {(movie.mediaType || movie.media_type) === 'tv' ? 'TV Series' : 'Movie'}
+                    </span>
+                    {movie.voteAverage > 0 && (
+                        <div className="flex items-center gap-1 bg-surface px-1.5 py-0.5 rounded text-xs text-accent font-bold">
+                            <Icons.Star /> {(movie.voteAverage || movie.vote_average).toFixed(1)}
+                        </div>
+                    )}
                 </div>
-            );
+            </div>
+        </div>
+    );
+
+    const Modal = ({ movie, isOpen, onClose, userList, onUpdate, onDelete, onAdd, categories }) => {
+        const [omdb, setOmdb] = useState(null);
+        const [isEditing, setIsEditing] = useState(false);
+        const [formData, setFormData] = useState({ status: '', notes: '' });
+        const [loadingScores, setLoadingScores] = useState(false);
+
+        const inLibrary = userList.find(m => String(m.tmdbId) === String(movie?.id || movie?.tmdbId));
+
+        useEffect(() => {
+            if (isOpen && movie) {
+                const status = inLibrary ? inLibrary.status : (categories[0] || 'Watching');
+                const notes = inLibrary ? inLibrary.notes : '';
+                setFormData({ status, notes });
+                setIsEditing(false);
+                document.body.style.overflow = 'hidden';
+                
+                // Fetch Scores
+                setLoadingScores(true);
+                const tmdbId = movie.id || movie.tmdbId;
+                const type = (movie.media_type || movie.mediaType) === 'tv' ? 'tv' : 'movie';
+                
+                fetch(`https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${CONFIG.TMDB_KEY}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.imdb_id) {
+                            return fetch(`https://www.omdbapi.com/?apikey=${CONFIG.OMDB_KEY}&i=${data.imdb_id}`);
+                        }
+                    })
+                    .then(res => res && res.json())
+                    .then(data => setOmdb(data))
+                    .catch(err => console.log(err))
+                    .finally(() => setLoadingScores(false));
+
+            } else {
+                document.body.style.overflow = 'auto';
+                setOmdb(null);
+            }
+        }, [isOpen, movie]);
+
+        if (!isOpen || !movie) return null;
+
+        const backdrop = (movie.backdrop_path || movie.backdropPath) 
+            ? `https://image.tmdb.org/t/p/original${movie.backdrop_path || movie.backdropPath}` 
+            : null;
+        
+        const handleSave = () => {
+            if (inLibrary) {
+                onUpdate({ ...inLibrary, ...formData });
+            } else {
+                onAdd(movie, formData);
+            }
+            setIsEditing(false);
         };
 
-        const Modal = ({ movie, isOpen, onClose, onUpdate, onDelete, categories }) => {
-            const [omdb, setOmdb] = useState(null);
-            const [isEditing, setIsEditing] = useState(false);
-            const [formData, setFormData] = useState({ status: '', notes: '' });
+        return (
+            <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+                <div className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col relative animate-slide-up border border-white/10">
+                    {/* Header Banner */}
+                    <div className="h-48 md:h-64 relative shrink-0">
+                        {backdrop && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${backdrop})` }}></div>}
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent"></div>
+                        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-white/20 rounded-full text-white transition">
+                            <Icons.X />
+                        </button>
+                    </div>
 
-            useEffect(() => {
-                if (isOpen && movie) {
-                    setFormData({ status: movie.status || categories[0], notes: movie.notes || '' });
-                    document.body.style.overflow = 'hidden';
-                    
-                    // Fetch External IDs from TMDB, then Ratings from OMDb
-                    if (movie.tmdbId) {
-                        const type = movie.mediaType === 'tv' ? 'tv' : 'movie';
-                        fetch(`https://api.themoviedb.org/3/${type}/${movie.tmdbId}/external_ids?api_key=${CONFIG.TMDB_KEY}`)
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.imdb_id) {
-                                    // Append OMDb key to request
-                                    return fetch(`https://www.omdbapi.com/?apikey=${CONFIG.OMDB_KEY}&i=${data.imdb_id}`);
-                                }
-                            })
-                            .then(res => res && res.json())
-                            .then(data => setOmdb(data))
-                            .catch(console.error);
-                    }
-                } else {
-                    document.body.style.overflow = 'auto';
-                    setOmdb(null);
-                    setIsEditing(false);
-                }
-            }, [isOpen, movie]);
-
-            if (!isOpen || !movie) return null;
-            const handleSave = () => { onUpdate(movie, formData); setIsEditing(false); };
-            const backdropUrl = movie.backdropPath ? `https://image.tmdb.org/t/p/original${movie.backdropPath}` : null;
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose}></div>
-                    <div className="relative w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] bg-brand-900 md:rounded-2xl overflow-hidden shadow-2xl flex flex-col md:border md:border-gray-700 fade-in">
-                        
-                        <div className="relative h-64 md:h-80 shrink-0">
-                            {backdropUrl && <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${backdropUrl})` }}></div>}
-                            <div className="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/60 to-transparent"></div>
-                            <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-white/20 transition"><Icons.X /></button>
+                    {/* Content */}
+                    <div className="flex flex-col md:flex-row px-6 md:px-10 pb-10 -mt-20 relative z-10 overflow-y-auto hide-scrollbar">
+                        {/* Poster */}
+                        <div className="w-40 md:w-52 shrink-0 rounded-xl overflow-hidden poster-shadow border-4 border-surface mx-auto md:mx-0 bg-surface">
+                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path || movie.posterPath}`} className="w-full h-full object-cover" />
                         </div>
 
-                        <div className="relative px-6 md:px-10 pb-10 -mt-32 overflow-y-auto hide-scrollbar flex-1">
-                            <div className="flex flex-col md:flex-row gap-8">
-                                <div className="shrink-0 w-40 md:w-56 rounded-lg shadow-2xl overflow-hidden border-2 border-gray-700 mx-auto md:mx-0">
-                                    <Poster path={movie.posterPath} className="w-full h-full" />
-                                </div>
-                                <div className="flex-1 text-center md:text-left pt-4 md:pt-32">
-                                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">{movie.title}</h2>
-                                    <div className="flex flex-wrap justify-center md:justify-start gap-3 text-sm text-gray-400 mb-6">
-                                        <span className="uppercase border border-gray-600 px-2 py-0.5 rounded text-xs">{movie.mediaType === 'tv' ? 'TV' : 'Movie'}</span>
-                                        <span>{movie.year?.split('-')[0]}</span>
-                                        {omdb?.Runtime && <span>• {omdb.Runtime}</span>}
-                                    </div>
+                        {/* Details */}
+                        <div className="flex-1 md:ml-8 mt-6 md:mt-24 text-center md:text-left">
+                            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">{movie.title || movie.name}</h2>
+                            <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted mb-6">
+                                <span className="uppercase tracking-wider font-bold text-accent">{(movie.media_type || movie.mediaType) === 'tv' ? 'TV Series' : 'Movie'}</span>
+                                <span>{movie.release_date?.split('-')[0] || movie.first_air_date?.split('-')[0] || movie.year}</span>
+                                {omdb?.Runtime && <span>{omdb.Runtime}</span>}
+                            </div>
 
-                                    {/* Ratings Display */}
-                                    <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-6">
-                                        <div className="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded border border-gray-700">
-                                            <span className="text-brand-400 font-bold text-xs">TMDB</span>
-                                            <span className="font-bold">{movie.voteAverage?.toFixed(1)}</span>
+                            {/* Scores */}
+                            <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-8">
+                                {loadingScores ? <div className="text-xs text-muted">Loading scores...</div> : (
+                                    <>
+                                        <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10">
+                                            <span className="text-accent font-bold text-xs">TMDB</span>
+                                            <span className="font-bold text-white">{(movie.vote_average || movie.voteAverage)?.toFixed(1)}</span>
                                         </div>
                                         {omdb?.imdbRating && (
-                                            <div className="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded border border-gray-700">
+                                            <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10">
                                                 <span className="text-rating-imdb font-bold text-xs">IMDb</span>
-                                                <span className="font-bold">{omdb.imdbRating}</span>
+                                                <span className="font-bold text-white">{omdb.imdbRating}</span>
                                             </div>
                                         )}
                                         {omdb?.Ratings?.find(r => r.Source === "Rotten Tomatoes") && (
-                                            <div className="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded border border-gray-700">
+                                            <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-white/10">
                                                 <span className="text-rating-rt font-bold text-xs">RT</span>
-                                                <span className="font-bold">{omdb.Ratings.find(r => r.Source === "Rotten Tomatoes").Value}</span>
+                                                <span className="font-bold text-white">{omdb.Ratings.find(r => r.Source === "Rotten Tomatoes").Value}</span>
                                             </div>
                                         )}
-                                    </div>
+                                    </>
+                                )}
+                            </div>
 
-                                    {/* User Controls */}
-                                    <div className="bg-gray-800/40 p-5 rounded-xl border border-gray-700/50 mb-6 backdrop-blur-sm">
-                                        {isEditing ? (
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Status</label>
-                                                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full bg-brand-900 border border-gray-600 text-white p-2 rounded">
-                                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs text-gray-500 uppercase font-bold block mb-1">Notes</label>
-                                                    <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full bg-brand-900 border border-gray-600 text-white p-2 rounded h-20" placeholder="Your thoughts..."></textarea>
-                                                </div>
-                                                <div className="flex justify-end gap-2">
-                                                    <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm text-gray-400 hover:text-white">Cancel</button>
-                                                    <button onClick={handleSave} className="px-3 py-1 bg-brand-500 text-white rounded text-sm font-bold hover:bg-brand-400">Save</button>
-                                                </div>
+                            {/* Controls */}
+                            <div className="bg-primary/50 p-5 rounded-xl border-l-4 border-accent mb-6 backdrop-blur-sm">
+                                {!inLibrary && !isEditing ? (
+                                    <div className="text-center md:text-left">
+                                        <p className="text-muted mb-4 text-sm">Not in your library yet.</p>
+                                        <button onClick={() => setIsEditing(true)} className="bg-accent text-black font-bold px-6 py-2 rounded-full hover:scale-105 transition flex items-center gap-2 mx-auto md:mx-0">
+                                            <Icons.Plus /> Add to Library
+                                        </button>
+                                    </div>
+                                ) : (
+                                    isEditing ? (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase text-muted mb-1">List Status</label>
+                                                <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} 
+                                                    className="w-full bg-bg border border-white/10 rounded p-2 text-white focus:border-accent outline-none">
+                                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
                                             </div>
-                                        ) : (
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <span className={`inline-block px-2 py-1 text-xs font-bold uppercase rounded mb-2 ${movie.status === 'Watching' ? 'bg-green-500/20 text-green-400' : 'bg-brand-500/20 text-brand-400'}`}>{movie.status}</span>
-                                                    <p className="text-gray-300 italic text-sm">{movie.notes || "No notes..."}</p>
-                                                </div>
-                                                <button onClick={() => setIsEditing(true)} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition"><Icons.Edit /></button>
+                                            <div>
+                                                <label className="block text-xs font-bold uppercase text-muted mb-1">Notes</label>
+                                                <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} 
+                                                    className="w-full bg-bg border border-white/10 rounded p-2 text-white h-24 focus:border-accent outline-none" placeholder="Write your thoughts..."></textarea>
                                             </div>
-                                        )}
-                                    </div>
+                                            <div className="flex justify-end gap-3 pt-2">
+                                                <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm hover:text-white text-muted">Cancel</button>
+                                                <button onClick={handleSave} className="px-6 py-2 bg-accent text-black font-bold rounded-lg hover:brightness-110 transition">Save</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="inline-block px-3 py-1 bg-accent/10 text-accent text-xs font-bold uppercase rounded-full mb-2">{inLibrary.status}</span>
+                                                <p className="text-gray-300 italic text-sm leading-relaxed">{inLibrary.notes || "No notes added."}</p>
+                                            </div>
+                                            <button onClick={() => setIsEditing(true)} className="p-2 text-muted hover:text-white bg-black/20 hover:bg-black/40 rounded-lg transition"><Icons.Edit /></button>
+                                        </div>
+                                    )
+                                )}
+                            </div>
 
-                                    <div className="flex justify-center md:justify-start gap-4">
-                                        <button onClick={() => onDelete(movie.tmdbId)} className="text-red-500 hover:text-red-400 text-sm flex items-center gap-2 hover:bg-red-500/10 px-3 py-2 rounded transition"><Icons.Trash /> Delete</button>
-                                    </div>
+                            {inLibrary && !isEditing && (
+                                <button onClick={() => { if(window.confirm('Remove from library?')) { onDelete(inLibrary.tmdbId); onClose(); } }} 
+                                    className="text-danger text-sm hover:underline flex items-center gap-2 mt-4">
+                                    <Icons.Trash /> Remove from Library
+                                </button>
+                            )}
 
-                                    <div className="mt-8 text-gray-400 text-sm leading-relaxed max-w-2xl">{omdb?.Plot || "Loading plot details..."}</div>
-                                </div>
+                            <div className="mt-8 text-muted text-sm leading-7">
+                                <h3 className="text-white font-bold mb-2 uppercase text-xs tracking-widest">Synopsis</h3>
+                                {movie.overview || "No description available."}
                             </div>
                         </div>
                     </div>
                 </div>
-            );
+            </div>
+        );
+    };
+
+    // --- MAIN APP ---
+
+    const App = () => {
+        const [tab, setTab] = useState('trending'); // trending, search, library
+        const [trending, setTrending] = useState([]);
+        const [library, setLibrary] = useState([]);
+        const [categories, setCategories] = useState([]);
+        const [currentCat, setCurrentCat] = useState('');
+        const [query, setQuery] = useState('');
+        const [searchResults, setSearchResults] = useState([]);
+        const [selectedMovie, setSelectedMovie] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [notification, setNotification] = useState(null);
+
+        // Fetch Library (Initial Load)
+        useEffect(() => {
+            fetchLibrary();
+            fetchTrending();
+        }, []);
+
+        const showNotify = (msg, type = 'success') => {
+            setNotification({ msg, type });
+            setTimeout(() => setNotification(null), 3000);
         };
 
-        const App = () => {
-            const [view, setView] = useState('library');
-            const [query, setQuery] = useState('');
-            const [library, setLibrary] = useState([]);
-            const [categories, setCategories] = useState([]);
-            const [activeCategory, setActiveCategory] = useState('');
-            const [searchResults, setSearchResults] = useState([]);
-            const [isLoading, setIsLoading] = useState(false);
-            const [toast, setToast] = useState(null);
-            const [selectedMovie, setSelectedMovie] = useState(null);
+        const fetchTrending = async () => {
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${CONFIG.TMDB_KEY}`);
+                const data = await res.json();
+                setTrending(data.results.filter(i => i.media_type === 'movie' || i.media_type === 'tv'));
+            } catch (e) { console.error("Trending Error", e); }
+        };
 
-            const showToast = (msg, type = 'success') => {
-                setToast({ message: msg, type });
-                setTimeout(() => setToast(null), 3000);
-            };
+        const fetchLibrary = async () => {
+            if (CONFIG.GAS_URL.includes('PASTE')) return;
+            try {
+                const res = await fetch(CONFIG.GAS_URL);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setLibrary(data.library);
+                    setCategories(data.categories);
+                    if (!currentCat && data.categories.length) setCurrentCat(data.categories[0]);
+                } else {
+                     console.error("GAS Error", data.message);
+                     showNotify("Database connection issue. Check GAS URL.", "error");
+                }
+            } catch (e) { console.error("Library Fetch Error", e); }
+        };
 
-            const fetchLibrary = async () => {
-                if (CONFIG.GAS_URL.includes('PASTE_YOUR')) return; // Prevent fetch if URL not set
-                setIsLoading(true);
-                try {
-                    const res = await fetch(CONFIG.GAS_URL);
+        const searchTMDB = useCallback(async (q) => {
+            if (q.length < 3) return;
+            setLoading(true);
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.TMDB_KEY}&query=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                setSearchResults(data.results.filter(i => i.media_type === 'movie' || i.media_type === 'tv'));
+            } catch (e) { console.error(e); } 
+            finally { setLoading(false); }
+        }, []);
+
+        // Debounce Search
+        useEffect(() => {
+            const timer = setTimeout(() => { if (tab === 'search' && query) searchTMDB(query); }, 500);
+            return () => clearTimeout(timer);
+        }, [query, tab]);
+
+        // Database Operations
+        const apiCall = async (action, payload) => {
+            if (CONFIG.GAS_URL.includes('PASTE')) {
+                showNotify("Setup Required: Check code config", "error");
+                return false;
+            }
+            
+            try {
+                // Using exponential backoff for robustness
+                const MAX_RETRIES = 3;
+                for (let i = 0; i < MAX_RETRIES; i++) {
+                    const res = await fetch(CONFIG.GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    
                     const data = await res.json();
-                    if (data.status === 'success') {
-                        setLibrary(data.library);
-                        setCategories(data.categories);
-                        if (!activeCategory && data.categories.length) setActiveCategory(data.categories[0]);
+                    if (data.status === 'success') return true;
+                    
+                    // If not successful, wait and retry (Exponential Backoff)
+                    if (i < MAX_RETRIES - 1) {
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                        continue;
                     }
-                } catch(e) { showToast('Check GAS_URL in code', 'error'); } 
-                finally { setIsLoading(false); }
-            };
-
-            useEffect(() => { fetchLibrary(); }, []);
-
-            const searchTMDB = useCallback(async (q) => {
-                if (q.length < 3) return;
-                setIsLoading(true);
-                // Append TMDB API Key to request
-                try {
-                    const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${CONFIG.TMDB_KEY}&query=${encodeURIComponent(q)}`);
-                    const data = await res.json();
-                    setSearchResults(data.results?.filter(i => i.media_type === 'movie' || i.media_type === 'tv') || []);
-                } catch (e) { console.error(e); } 
-                finally { setIsLoading(false); }
-            }, []);
-
-            useEffect(() => {
-                const timer = setTimeout(() => { if (view === 'search' && query) searchTMDB(query); }, 500);
-                return () => clearTimeout(timer);
-            }, [query, view, searchTMDB]);
-
-            const handleAdd = (item) => {
-                const newItem = {
-                    tmdbId: item.id, imdbId: '', title: item.title || item.name, mediaType: item.media_type,
-                    posterPath: item.poster_path, backdropPath: item.backdrop_path,
-                    year: item.release_date || item.first_air_date, voteAverage: item.vote_average,
-                    status: categories[0] || 'Watching', notes: ''
-                };
-                setLibrary(prev => [...prev, newItem]);
-                showToast(`Added ${newItem.title}`);
-                if (!CONFIG.GAS_URL.includes('PASTE')) {
-                    fetch(CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'add', item: newItem }) }).catch(() => showToast('Save failed', 'error'));
+                    
+                    throw new Error(data.message || 'Unknown error');
                 }
+            } catch (e) {
+                console.error(`API Call failed for action ${action}:`, e);
+                showNotify(`DB Sync failed for ${action}. Re-fetching data.`, "error");
+                fetchLibrary(); // Revert/resync UI on fail
+                return false;
+            }
+        };
+
+        const handleAdd = async (movie, formData) => {
+            const newItem = {
+                tmdbId: String(movie.id || movie.tmdbId), // Ensure ID is string for consistency
+                title: movie.title || movie.name,
+                mediaType: movie.media_type || movie.mediaType,
+                posterPath: movie.poster_path || movie.posterPath,
+                backdropPath: movie.backdrop_path || movie.backdropPath,
+                year: (movie.release_date || movie.first_air_date || '').split('-')[0],
+                voteAverage: (movie.vote_average || movie.voteAverage || 0).toFixed(1),
+                status: formData.status,
+                notes: formData.notes
             };
 
-            const handleUpdate = (movie, updates) => {
-                setLibrary(prev => prev.map(m => m.tmdbId === movie.tmdbId ? { ...m, ...updates } : m));
-                if (!CONFIG.GAS_URL.includes('PASTE')) {
-                    fetch(CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'update', tmdbId: movie.tmdbId, updates }) });
-                }
-            };
+            // Optimistic UI Update
+            setLibrary(prev => [...prev, newItem]);
+            showNotify(`Added ${newItem.title}`);
 
-            const handleDelete = (tmdbId) => {
-                if (!confirm("Delete from library?")) return;
-                setLibrary(prev => prev.filter(m => m.tmdbId !== tmdbId));
-                setSelectedMovie(null);
-                showToast('Deleted');
-                if (!CONFIG.GAS_URL.includes('PASTE')) {
-                    fetch(CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', tmdbId }) });
-                }
-            };
+            // Background Sync
+            const success = await apiCall('add', { item: newItem });
+            if (!success) fetchLibrary(); // Revert on fail
+        };
 
-            const filteredLibrary = useMemo(() => library.filter(m => m.status === activeCategory), [library, activeCategory]);
+        const handleUpdate = async (updatedItem) => {
+            setLibrary(prev => prev.map(m => String(m.tmdbId) === String(updatedItem.tmdbId) ? updatedItem : m));
+            showNotify("Updated");
+            
+            const updatesToSend = { status: updatedItem.status, notes: updatedItem.notes };
+            await apiCall('update', { tmdbId: updatedItem.tmdbId, updates: updatesToSend });
+        };
 
-            return (
-                <div className="min-h-screen pb-20 font-sans text-gray-100">
-                    <nav className="sticky top-0 z-40 glass border-b border-gray-700/50">
-                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                            <div className="text-2xl font-bold tracking-tight cursor-pointer" onClick={() => { setView('library'); setQuery(''); }}>
-                                Cine<span className="text-brand-400">shelf</span>
-                            </div>
-                            <div className="flex-1 max-w-lg relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Icons.Search /></div>
-                                <input type="text" placeholder="Search Movies & TV..." className="w-full bg-gray-800/50 border border-gray-600 rounded-full pl-10 pr-10 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
-                                    value={query} onChange={e => { setQuery(e.target.value); setView('search'); }} />
-                                {query && <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" onClick={() => { setQuery(''); setView('library'); }}><Icons.X /></button>}
+        const handleDelete = async (tmdbId) => {
+            setLibrary(prev => prev.filter(m => String(m.tmdbId) !== String(tmdbId)));
+            showNotify("Deleted");
+            await apiCall('delete', { tmdbId });
+        };
+
+        // Helpers
+        const filteredLibrary = useMemo(() => library.filter(m => m.status === currentCat), [library, currentCat]);
+
+        return (
+            <div className="min-h-screen pb-20">
+                {/* --- HEADER --- */}
+                <header className="fixed top-0 w-full z-40 glass h-16 flex items-center justify-between px-4 md:px-8">
+                    <div className="font-bold text-xl tracking-tight cursor-pointer" onClick={() => setTab('trending')}>
+                        Cine<span className="text-accent">Shelf</span>
+                    </div>
+                    
+                    <div className="flex gap-1 bg-surface p-1 rounded-full border border-white/5">
+                        {[
+                            { id: 'trending', icon: Icons.Trending, label: 'Trending' },
+                            { id: 'search', icon: Icons.Search, label: 'Search' },
+                            { id: 'library', icon: Icons.Library, label: 'Library' }
+                        ].map(t => (
+                            <button key={t.id} onClick={() => setTab(t.id)} 
+                                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${tab === t.id ? 'bg-primary text-accent shadow-sm' : 'text-muted hover:text-white'}`}>
+                                <t.icon /> <span className="hidden md:inline">{t.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </header>
+
+                {/* --- MAIN CONTENT --- */}
+                <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto">
+                    
+                    {/* VIEW: TRENDING */}
+                    {tab === 'trending' && (
+                        <div className="animate-fade-in">
+                            <h1 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white"><Icons.Trending /> Trending Today</h1>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                {trending.map(m => <MovieCard key={m.id} movie={m} onClick={setSelectedMovie} />)}
                             </div>
                         </div>
-                        {view === 'library' && (
-                            <div className="max-w-7xl mx-auto px-4 flex gap-6 overflow-x-auto hide-scrollbar border-t border-gray-800/50">
-                                {categories.map(cat => (
-                                    <button key={cat} onClick={() => setActiveCategory(cat)} 
-                                        className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeCategory === cat ? 'border-brand-400 text-brand-400' : 'border-transparent text-gray-400 hover:text-white'}`}>
-                                        {cat} <span className="ml-1 text-[10px] bg-gray-800 px-1.5 py-0.5 rounded-full text-gray-300">{library.filter(m => m.status === cat).length}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </nav>
+                    )}
 
-                    <main className="max-w-7xl mx-auto px-4 py-8">
-                        {CONFIG.GAS_URL.includes('PASTE') && (
-                            <div className="bg-red-500/20 border border-red-500 text-red-200 p-4 rounded mb-6 text-center">
-                                ⚠️ <strong>Setup Required:</strong> Please replace <code>GAS_URL</code> in the code with your Google Web App URL.
+                    {/* VIEW: SEARCH */}
+                    {tab === 'search' && (
+                        <div className="animate-fade-in">
+                            <div className="max-w-2xl mx-auto mb-10 relative">
+                                <input autoFocus type="text" placeholder="Search for movies or TV series..." 
+                                    className="w-full bg-surface border border-white/10 rounded-full px-6 py-4 text-lg focus:outline-none focus:border-accent shadow-xl transition-all"
+                                    value={query} onChange={e => setQuery(e.target.value)} />
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-muted"><Icons.Search /></div>
                             </div>
-                        )}
-                        
-                        {isLoading ? (
-                            <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div></div>
-                        ) : view === 'search' ? (
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-                                {searchResults.map(item => {
-                                    const inLib = library.some(l => l.tmdbId === item.id);
-                                    return (
-                                        <div key={item.id} className="group relative bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:ring-2 hover:ring-brand-500 transition-all">
-                                            <div className="aspect-[2/3] relative">
-                                                <Poster path={item.poster_path} alt={item.title} className="w-full h-full" />
-                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                    {inLib ? <span className="text-green-400 font-bold flex items-center gap-1"><Icons.Film /> Saved</span> 
-                                                    : <button onClick={() => handleAdd(item)} className="bg-brand-500 text-white p-3 rounded-full hover:scale-110 transition"><Icons.Plus /></button>}
-                                                </div>
-                                            </div>
-                                            <div className="p-3">
-                                                <h3 className="font-bold text-sm truncate text-white">{item.title || item.name}</h3>
-                                                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                                    <span>{item.release_date?.split('-')[0] || item.first_air_date?.split('-')[0]}</span>
-                                                    <span className="flex items-center gap-1"><Icons.Star /> {item.vote_average?.toFixed(1)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6 fade-in">
-                                {filteredLibrary.length === 0 ? <div className="col-span-full text-center py-20 text-gray-500">No items in this list. Search to add some!</div> : 
-                                filteredLibrary.map(movie => (
-                                    <div key={movie.tmdbId} onClick={() => setSelectedMovie(movie)} className="cursor-pointer group relative bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:-translate-y-1 transition-transform">
-                                        <div className="aspect-[2/3] relative">
-                                            <Poster path={movie.posterPath} alt={movie.title} className="w-full h-full" />
-                                            <div className="absolute top-2 right-2"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shadow text-white ${movie.mediaType === 'tv' ? 'bg-purple-600' : 'bg-brand-600'}`}>{movie.mediaType === 'tv' ? 'TV' : 'MOVIE'}</span></div>
-                                        </div>
-                                        <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent pt-12">
-                                            <h3 className="font-bold text-white text-sm leading-tight">{movie.title}</h3>
-                                            <div className="flex gap-2 mt-1 text-xs text-brand-300">
-                                                <span>{movie.year?.split('-')[0]}</span>
-                                                {movie.voteAverage > 0 && <span>• {movie.voteAverage.toFixed(1)}</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </main>
+                            {loading ? <Loading /> : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                    {searchResults.map(m => <MovieCard key={m.id} movie={m} onClick={setSelectedMovie} />)}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                    <Modal movie={selectedMovie} isOpen={!!selectedMovie} onClose={() => setSelectedMovie(null)} userList={library} onUpdate={handleUpdate} onDelete={handleDelete} categories={categories} />
-                    {toast && <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full shadow-lg text-white text-sm font-bold z-50 fade-in ${toast.type === 'error' ? 'bg-red-500' : 'bg-brand-500'}`}>{toast.message}</div>}
-                </div>
-            );
-        };
+                    {/* VIEW: LIBRARY */}
+                    {tab === 'library' && (
+                        <div className="animate-fade-in">
+                            <div className="flex justify-center mb-8 overflow-x-auto hide-scrollbar">
+                                <div className="flex gap-2 bg-surface p-1.5 rounded-full border border-white/5">
+                                    {categories.map(cat => (
+                                        <button key={cat} onClick={() => setCurrentCat(cat)}
+                                            className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${currentCat === cat ? 'bg-accent text-bg shadow-lg' : 'text-muted hover:text-white'}`}>
+                                            {cat} <span className="opacity-50 text-xs ml-1">{library.filter(m => m.status === cat).length}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                            {filteredLibrary.length === 0 ? (
+                                <div className="text-center py-20 text-muted">
+                                    <div className="mb-4 opacity-20"><Icons.Library /></div>
+                                    <p className="text-lg">This shelf is empty.</p>
+                                    <button onClick={() => setTab('search')} className="mt-4 text-accent hover:underline">Go find something to watch</button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                    {filteredLibrary.map(m => <MovieCard key={m.tmdbId} movie={m} onClick={setSelectedMovie} />)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </main>
+
+                {/* --- GLOBAL COMPONENTS --- */}
+                <Modal movie={selectedMovie} isOpen={!!selectedMovie} onClose={() => setSelectedMovie(null)} 
+                    userList={library} categories={categories} onAdd={handleAdd} onUpdate={handleUpdate} onDelete={handleDelete} />
+
+                {notification && (
+                    <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl z-50 font-bold animate-slide-up flex items-center gap-2 ${notification.type === 'error' ? 'bg-danger text-white' : 'bg-accent text-bg'}`}>
+                        {notification.msg}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
+</body></html>
